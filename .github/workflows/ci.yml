@@ -1,7 +1,7 @@
 # Checks every push to main and every pull request: php -l on PHP 8.4 and 8.5, WordPress coding standards, PHPStan
 # level 8 on PHP 8.4, the shell scripts' syntax, PHPUnit (single site) on the WordPress nightly with PHP 8.4 and 8.5,
 # and an installation of the built zip with WP-CLI (the drop-in must leave a network). The Playwright test of the
-# installer screens and the Set up screen runs locally (tools/shiplaunch-e2e.sh). A green tick before tagging.
+# installer screens and the Set up screen runs locally. A green tick before tagging; "Run workflow" checks again by hand.
 #
 # The zip holds the latest releases of the public Windrose plugin repositories; the workflow's own token only raises
 # GitHub's API limit.
@@ -12,6 +12,7 @@ on:
     branches:
       - main
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
