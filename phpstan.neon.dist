@@ -1,0 +1,11 @@
+# PHPStan level 8, on PHP 8.4 (composer install brings PHPStan and the WordPress stubs):
+# vendor/bin/phpstan analyse -c phpstan.neon.dist
+parameters:
+    level: 8
+    phpVersion:
+        min: 80400
+        max: 80599
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: true
+    paths:
+        - wp-content/install.php

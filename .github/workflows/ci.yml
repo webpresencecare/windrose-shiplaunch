@@ -1,0 +1,150 @@
+# Checks every push to main and every pull request: php -l on PHP 8.4 and 8.5, WordPress coding standards, PHPStan
+# level 8 on PHP 8.4, the shell scripts' syntax, PHPUnit (single site) on the WordPress nightly with PHP 8.4 and 8.5,
+# and an installation of the built zip with WP-CLI (the drop-in must leave a network). The Playwright test of the
+# installer screens and the Set up screen runs locally (tools/shiplaunch-e2e.sh). A green tick before tagging.
+#
+# The zip holds the latest releases of the public Windrose plugin repositories; the workflow's own token only raises
+# GitHub's API limit.
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: PHP ${{ matrix.php }} syntax
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [ '8.4', '8.5' ]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: none
+      - name: php -l on every PHP file
+        run: |
+          status=0
+          while IFS= read -r -d '' f; do
+            out=$(php -l "$f" 2>&1) || { echo "$out"; status=1; }
+          done < <(find . -name '*.php' -not -path './vendor/*' -print0)
+          exit $status
+
+  standards:
+    name: Coding standards, PHPStan (PHP 8.4), shell syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer:v2
+      - run: composer install --prefer-dist --no-interaction --no-progress
+      - name: PHPCS
+        run: vendor/bin/phpcs --standard=phpcs.xml.dist
+      - name: PHPStan level 8
+        run: vendor/bin/phpstan analyse -c phpstan.neon.dist --no-progress --memory-limit=1G
+      - name: bash -n on every shell script
+        run: |
+          status=0
+          while IFS= read -r -d '' f; do bash -n "$f" || status=1; done < <(find bin tests -name '*.sh' -print0)
+          exit $status
+
+  phpunit:
+    name: PHPUnit (PHP ${{ matrix.php }}, WordPress nightly)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [ '8.4', '8.5' ]
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: windrose_tests
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      DB_NAME: windrose_tests
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_HOST: 127.0.0.1:3306
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+          extensions: mysqli, zip, intl, sodium
+      - run: composer install --prefer-dist --no-interaction --no-progress
+      - name: WordPress nightly and its test library
+        run: bash bin/install-wp-tests.sh "$RUNNER_TEMP/wp"
+      - name: PHPUnit
+        env:
+          WP_TESTS_DIR: ${{ runner.temp }}/wp/develop/tests/phpunit
+          WP_TESTS_CONFIG_FILE_PATH: ${{ runner.temp }}/wp/wp-tests-config.php
+        run: vendor/bin/phpunit
+
+  install:
+    name: Zip installed with WP-CLI (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [ '8.4', '8.5' ]
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: windrose_install
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      DB_NAME: windrose_install
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_HOST: 127.0.0.1:3306
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: none
+          extensions: mysqli, zip, intl, sodium
+      - name: WP-CLI nightly (checksum verified)
+        run: |
+          base=https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar
+          curl -fsSL -o "$RUNNER_TEMP/wp-cli.phar" "$base/wp-cli-nightly.phar"
+          echo "$(curl -fsSL "$base/wp-cli-nightly.phar.sha512")  $RUNNER_TEMP/wp-cli.phar" | sha512sum -c -
+          sudo install -m 0755 "$RUNNER_TEMP/wp-cli.phar" /usr/local/bin/wp
+          wp --version
+      - name: Build the zip (WordPress nightly, latest Windrose releases)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash bin/build-zip.sh
+      - name: Install it with WP-CLI and check the network
+        run: bash tests/install/cli-install.sh "$PWD/dist/windrose-suite.zip" "$RUNNER_TEMP/site" https://windrose.example.test/

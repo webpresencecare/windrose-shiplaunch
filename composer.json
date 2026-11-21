@@ -1,0 +1,39 @@
+{
+	"name": "webpresencecare/windrose-shiplaunch",
+	"description": "Windrose Shiplaunch: the Windrose Suite distribution zip and its installer drop-in. Composer only installs the check tools.",
+	"type": "project",
+	"license": "GPL-2.0-or-later",
+	"authors": [
+		{
+			"name": "Patricia BT",
+			"homepage": "https://patriciabt.com"
+		}
+	],
+	"require": {
+		"php": ">=8.4"
+	},
+	"require-dev": {
+		"php-stubs/wordpress-stubs": "7.1.2",
+		"phpcompatibility/php-compatibility": "10.0.0-alpha2",
+		"phpcompatibility/phpcompatibility-wp": "3.0.0-alpha2",
+		"phpstan/extension-installer": "1.4.3",
+		"phpstan/phpstan": "2.3.2",
+		"phpunit/phpunit": "9.6.38",
+		"squizlabs/php_codesniffer": "3.13.6",
+		"szepeviktor/phpstan-wordpress": "2.0.4",
+		"wp-coding-standards/wpcs": "3.4.1",
+		"yoast/phpunit-polyfills": "1.1.5"
+	},
+	"config": {
+		"platform": {
+			"php": "8.4"
+		},
+		"sort-packages": true,
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true,
+			"phpstan/extension-installer": true
+		}
+	},
+	"minimum-stability": "alpha",
+	"prefer-stable": true
+}

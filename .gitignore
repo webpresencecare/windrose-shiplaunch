@@ -1,0 +1,26 @@
+# Development notes stay on the developer's machine.
+/CLAUDE.md
+/TODO.md
+/DONE.md
+/notes.md
+
+# Dependencies. build/ IS committed: the release zip ships it as built and tested.
+node_modules
+/vendor/
+*.zip
+
+# Test output.
+/tests/e2e/.auth/
+/tests/e2e/.results/
+.phpunit.result.cache
+
+# Operating system and editor files.
+.DS_Store
+Thumbs.db
+desktop.ini
+*Zone.Identifier
+.idea/
+.vscode/
+*.swp
+*~
+dist/

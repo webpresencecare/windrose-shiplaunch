@@ -1,0 +1,76 @@
+# Publishes a GitHub release when a version tag is pushed (GitHub Desktop: History, right-click the commit, Create
+# Tag, then Push). The tag must match the installer drop-in's version. The release carries windrose-suite.zip
+# (root folder windrose/: WordPress core checked against wordpress.org's checksums, the latest releases of Windrose
+# Helm, Anchors and Sabir checked against GitHub's digests, the drop-in) and windrose-suite.txt (what is inside).
+# WordPress core: the nightly while the Suite needs 7.2 before its release; set CORE (for example 7.2) once it ships.
+# The plugin releases are public; the workflow's own token only raises GitHub's API limit. The zip built here (core and plugin releases of
+# this moment) is installed with WP-CLI before it is published, as in ci.yml.
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: windrose_install
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      DB_NAME: windrose_install
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_HOST: 127.0.0.1:3306
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: none
+          extensions: mysqli, zip, intl, sodium
+      - name: WP-CLI nightly (checksum verified)
+        run: |
+          base=https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar
+          curl -fsSL -o "$RUNNER_TEMP/wp-cli.phar" "$base/wp-cli-nightly.phar"
+          echo "$(curl -fsSL "$base/wp-cli-nightly.phar.sha512")  $RUNNER_TEMP/wp-cli.phar" | sha512sum -c -
+          sudo install -m 0755 "$RUNNER_TEMP/wp-cli.phar" /usr/local/bin/wp
+          wp --version
+
+      - name: Build the zip (checks that the tag matches the installer version)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CORE: nightly
+        run: bash bin/build-zip.sh "$GITHUB_REF_NAME"
+
+      - name: Install the zip to publish with WP-CLI and check the network
+        run: bash tests/install/cli-install.sh "$PWD/dist/windrose-suite.zip" "$RUNNER_TEMP/site" https://windrose.example.test/
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "What is inside:"
+            echo
+            sed 's/^/- /' dist/windrose-suite.txt
+            echo
+            echo "sha256 of windrose-suite.zip: $(sha256sum dist/windrose-suite.zip | cut -d' ' -f1)"
+            echo
+            echo "Installation: docs/install.md in this repository."
+          } > "$RUNNER_TEMP/notes.md"
+          gh release create "$GITHUB_REF_NAME" dist/windrose-suite.zip dist/windrose-suite.txt \
+            --title "The Windrose Suite $GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md" --verify-tag
