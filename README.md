@@ -1,8 +1,10 @@
 # Windrose Shiplaunch
 
+> Part of **[the Windrose Suite](https://www.webpresencecare.com/windrose/)**: WordPress for networks of sites, private by default, multilingual if you want it, free for everyone. Each Windrose plugin and theme works on its own.
+
 The distribution zip of **the Windrose Suite** and its installer: WordPress core, unmodified, plus the Windrose plugins and a drop-in that turns the new installation into a network of sites. After logging in, Windrose Helm's **Set up** screen offers the remaining choices (addresses, languages, plugins, privacy).
 
-Requires PHP 8.4 and WordPress 7.2 (the zip carries the 7.2 nightly until 7.2 ships). Private repository until the public release (planned with WordPress 7.2 final).
+Requires PHP 8.4 and WordPress 7.2 (the zip carries the 7.2 nightly until 7.2 ships).
 
 User documentation: [docs/install.md](docs/install.md) (new installations), [docs/existing-networks.md](docs/existing-networks.md) (the plugins on a network that already exists).
 
@@ -57,6 +59,22 @@ The plugins added to an existing site (`tests/e2e/existing-network.spec.mjs`, `e
 1. Release the plugins first (the zip takes their latest releases).
 2. Set the version in `wp-content/install.php` (the `Version:` line and `WINDROSE_SHIPLAUNCH_VERSION`), run the checks, commit, wait for the green CI run.
 3. Tag `vX.Y.Z` and push the tag: `.github/workflows/release.yml` builds the zip (refusing a tag that does not match the version) and publishes it with the list of what is inside.
+
+## Status
+
+Download `windrose-suite.zip` from this repository's GitHub releases. A wordpress.org version may come later, after independent reviews.
+
+## Security
+
+Please report vulnerabilities privately, never in a public issue: see [SECURITY.md](SECURITY.md).
+
+## Contributing
+
+Reviews, tests and issues are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## How this code is written
+
+I write this distribution with Claude Code (Anthropic's AI coding assistant): I design each feature, test it on real sites and review every release. Commits written with Claude say so in a `Co-Authored-By` line. Human review is especially welcome.
 
 ## Licence
 

@@ -1,0 +1,19 @@
+name: Feature request
+description: Suggest something new.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: "The Windrose Suite adds only what WordPress core lacks: please say whether core can already do part of it."
+  - type: textarea
+    id: need
+    attributes:
+      label: What you need
+      description: The problem first, then the idea.
+    validations:
+      required: true
+  - type: textarea
+    id: core
+    attributes:
+      label: What WordPress core does today
+      description: Core features or plugins you tried.

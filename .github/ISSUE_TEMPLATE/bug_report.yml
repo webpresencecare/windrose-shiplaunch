@@ -1,0 +1,40 @@
+name: Bug report
+description: Something does not work as described.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Security problems are never reported here: see SECURITY.md (Security tab, Report a vulnerability)."
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. ...\n2. ...\n3. ..."
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: This distribution's version, WordPress, PHP.
+      placeholder: "0.1.0, WordPress 7.2, PHP 8.4"
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: Setup
+      description: Single site or network (subdirectory or subdomain), web server, other active plugins and theme.
+  - type: textarea
+    id: log
+    attributes:
+      label: debug.log
+      description: Any lines from wp-content/debug.log (WP_DEBUG_LOG) from that moment.
+      render: text
